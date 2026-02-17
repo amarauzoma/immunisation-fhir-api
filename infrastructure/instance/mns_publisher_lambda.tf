@@ -157,29 +157,17 @@ resource "aws_iam_policy" "mns_publisher_lambda_kms_access_policy" {
 
 data "aws_iam_policy_document" "mns_publish_policy_document" {
   source_policy_documents = [
-<<<<<<< HEAD
     templatefile("${local.policy_path}/secret_manager.json", {
       "account_id" : data.aws_caller_identity.current.account_id,
       "pds_environment" : var.pds_environment
     }),
-=======
->>>>>>> 57c3de3b (Attach API credentials for PDS and MNS to Notification Lambda)
-    templatefile("${local.policy_path}/dynamo_key_access.json", {
-      "dynamo_encryption_key" : data.aws_kms_key.existing_dynamo_encryption_key.arn
-    })
   ]
 }
 
 resource "aws_iam_policy" "mns_publish_lambda_access_policy" {
-<<<<<<< HEAD
   name        = "${local.mns_publisher_lambda_name}-secrets-access-policy"
-  description = "Allow Lambda to access Secrets Manager and DynamoDB"
+  description = "Allow Lambda to access Secrets Manager"
   policy      = data.aws_iam_policy_document.mns_publish_policy_document.json
-=======
-  name        = "${local.id_sync_lambda_name}-dynamodb-access-policy"
-  description = "Allow Lambda to access DynamoDB"
-  policy      = data.aws_iam_policy_document.id_sync_policy_document.json
->>>>>>> 57c3de3b (Attach API credentials for PDS and MNS to Notification Lambda)
 }
 
 # Attach the execution policy to the Lambda role
@@ -194,15 +182,18 @@ resource "aws_iam_role_policy_attachment" "mns_publisher_lambda_kms_policy_attac
   policy_arn = aws_iam_policy.mns_publisher_lambda_kms_access_policy.arn
 }
 
-<<<<<<< HEAD
+# Attach the secrets access policy to the Lambda role
+resource "aws_iam_role_policy_attachment" "mns_publisher_lambda_access_policy_attachment" {
+  role       = aws_iam_role.mns_publisher_lambda_exec_role.name
+  policy_arn = aws_iam_policy.mns_publish_lambda_access_policy.arn
+}
+
 # Attach the secrets/dynamodb access policy to the Lambda role
 resource "aws_iam_role_policy_attachment" "mns_publisher_lambda_access_policy_attachment" {
   role       = aws_iam_role.mns_publisher_lambda_exec_role.name
   policy_arn = aws_iam_policy.mns_publish_lambda_access_policy.arn
 }
 
-=======
->>>>>>> 57c3de3b (Attach API credentials for PDS and MNS to Notification Lambda)
 # Lambda Function with Security Group and VPC.
 resource "aws_lambda_function" "mns_publisher_lambda" {
   function_name = local.mns_publisher_lambda_name
@@ -222,10 +213,6 @@ resource "aws_lambda_function" "mns_publisher_lambda" {
       SPLUNK_FIREHOSE_NAME     = module.splunk.firehose_stream_name
       "IMMUNIZATION_ENV"       = local.resource_scope,
       "IMMUNIZATION_BASE_PATH" = strcontains(var.sub_environment, "pr-") ? "immunisation-fhir-api/FHIR/R4-${var.sub_environment}" : "immunisation-fhir-api/FHIR/R4"
-<<<<<<< HEAD
-      PDS_ENV                  = var.pds_environment
-=======
->>>>>>> 57c3de3b (Attach API credentials for PDS and MNS to Notification Lambda)
     }
   }
 
