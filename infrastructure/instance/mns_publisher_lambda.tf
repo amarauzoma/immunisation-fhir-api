@@ -157,6 +157,10 @@ resource "aws_iam_policy" "mns_publisher_lambda_kms_access_policy" {
 
 data "aws_iam_policy_document" "mns_publish_policy_document" {
   source_policy_documents = [
+    templatefile("${local.policy_path}/secret_manager.json", {
+      "account_id" : data.aws_caller_identity.current.account_id,
+      "pds_environment" : var.pds_environment
+    }),
     templatefile("${local.policy_path}/dynamo_key_access.json", {
       "dynamo_encryption_key" : data.aws_kms_key.existing_dynamo_encryption_key.arn
     })
@@ -164,9 +168,9 @@ data "aws_iam_policy_document" "mns_publish_policy_document" {
 }
 
 resource "aws_iam_policy" "mns_publish_lambda_access_policy" {
-  name        = "${local.id_sync_lambda_name}-dynamodb-access-policy"
-  description = "Allow Lambda to access DynamoDB"
-  policy      = data.aws_iam_policy_document.id_sync_policy_document.json
+  name        = "${local.mns_publisher_lambda_name}-secrets-access-policy"
+  description = "Allow Lambda to access Secrets Manager and DynamoDB"
+  policy      = data.aws_iam_policy_document.mns_publish_policy_document.json
 }
 
 # Attach the execution policy to the Lambda role
@@ -179,6 +183,12 @@ resource "aws_iam_role_policy_attachment" "mns_publisher_lambda_exec_policy_atta
 resource "aws_iam_role_policy_attachment" "mns_publisher_lambda_kms_policy_attachment" {
   role       = aws_iam_role.mns_publisher_lambda_exec_role.name
   policy_arn = aws_iam_policy.mns_publisher_lambda_kms_access_policy.arn
+}
+
+# Attach the secrets/dynamodb access policy to the Lambda role
+resource "aws_iam_role_policy_attachment" "mns_publisher_lambda_access_policy_attachment" {
+  role       = aws_iam_role.mns_publisher_lambda_exec_role.name
+  policy_arn = aws_iam_policy.mns_publish_lambda_access_policy.arn
 }
 
 # Lambda Function with Security Group and VPC.
@@ -200,6 +210,7 @@ resource "aws_lambda_function" "mns_publisher_lambda" {
       SPLUNK_FIREHOSE_NAME     = module.splunk.firehose_stream_name
       "IMMUNIZATION_ENV"       = local.resource_scope,
       "IMMUNIZATION_BASE_PATH" = strcontains(var.sub_environment, "pr-") ? "immunisation-fhir-api/FHIR/R4-${var.sub_environment}" : "immunisation-fhir-api/FHIR/R4"
+      PDS_ENV                  = var.pds_environment
     }
   }
 
