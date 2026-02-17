@@ -234,6 +234,7 @@ resource "aws_lambda_event_source_mapping" "mns_outbound_event_sqs_to_lambda" {
   enabled          = true
 }
 
+
 resource "aws_cloudwatch_log_metric_filter" "mns_publisher_error_logs" {
   count = var.error_alarm_notifications_enabled ? 1 : 0
 
